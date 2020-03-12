@@ -1,0 +1,729 @@
+import { Injectable } from "@angular/core";
+import {
+  HttpClient,
+  HttpErrorResponse,
+  HttpHeaders
+} from "@angular/common/http";
+import { Observable, throwError, Subject } from "rxjs";
+import { catchError, map, timeout } from "rxjs/operators";
+import { AppSettings } from "../../../config";
+
+@Injectable({
+  providedIn: "root"
+})
+export class ProductMasterService {
+  public API_URL = AppSettings.apiUrl;
+  public format: string = "json";
+  public userData: any = {};
+  constructor(private http: HttpClient) {
+    this.localStorageData();
+  }
+
+  localStorageData() {
+    this.userData = JSON.parse(localStorage.getItem("user"));
+    console.log("get data from localsotrage = ", this.userData);
+  }
+
+  handleError(error: HttpErrorResponse) {
+    if (error.error instanceof ErrorEvent) {
+      // A client-side or network error occurred. Handle it accordingly.
+      console.error("An error occurred:", error.error.message);
+    } else {
+      // The backend returned an unsuccessful response code.
+      // The response body may contain clues as to what went wrong,
+      console.error(
+        `Backend returned code ${error.status}, ` + `body was: ${error.error}`
+      );
+    }
+    // return an observable with a user-facing error message
+    return throwError("Something bad happened; please try again later.");
+  }
+
+  getProductListInfo() {
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&format=" +
+          this.format +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Get Pagination Wise Product Service -
+  onGetProductListPagination(page_count, page_limit) {
+    this.localStorageData();
+
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&format=" +
+          this.format +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&product_name=" +
+          "" +
+          "&category_name=" +
+          "" +
+          "&sku=" + "" 
+          ,
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // For Single Product Details List -
+  // singleProductInfo(product_id, product_variant_id){
+
+  // 	console.log("product_variant_id in singleProductInfo service = ",product_variant_id);
+  // 	console.log("product_id in singleProductInfo service = ",product_id);
+  // 	this.localStorageData();
+  // 	const httpOptions = {
+  // 	  	headers: new HttpHeaders({
+  // 	    	'Content-Type':  'application/json',
+  // 	    	'Authorization': 'Bearer ' + this.userData.token,
+  // 		  }),
+  // 	};
+  // 	return this.http.get(this.API_URL + "product/productdetails?comp_id=" + this.userData.comp_id + "&product_id=" + product_id + "&product_variant_id=" + product_variant_id + "&org_id=" + this.userData.org_id + "&format="+this.format + "&logged_in_userid=" + this.userData.user_id, httpOptions)
+  //     .pipe(catchError(this.handleError));
+  // }
+
+  singleProductInfo(prod_id) {
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productdetails?comp_id=" +
+          this.userData.comp_id +
+          "&product_id=" +
+          prod_id +
+          "&org_id=" +
+          this.userData.org_id +
+          "&format=" +
+          this.format +
+          "&logged_in_userid=" +
+          this.userData.user_id,
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+    // return this.http.get(this.API_URL + "product/productdetails?comp_id="+14+"&product_id="+469+"&org_id="+this.userData.org_id+"&format="+this.format+"&logged_in_userid="+this.userData.user_id, httpOptions)
+    // .pipe(catchError(this.handleError));
+  }
+
+  // For Getting AllCategoryList Service Function -
+  getAllCategoriesList() {
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "/categories/getCompanyCategories?comp_id=" +
+          this.userData.comp_id +
+          "&format=" +
+          this.format +
+          "&logged_in_userid=" +
+          this.userData.user_id,
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // For Add New Category Service Function-
+  onPostCategoryData(formData: any) {
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      category_name: formData.category_name,
+      status: "active",
+      category_id: "new",
+      category_parent: formData.category_parent
+    };
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "categories/addCategories", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  // For Delete Category Service Function -
+  onDeleteCategory(formData) {
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      category_id: formData
+    };
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "categories/deleteCatgeory", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  //   OnEditCategory Service Function -
+  // for EditPostProductAttributeInfo() -
+  onEditPostCategory(categoryDetails) {
+    console.log("Form Data in Edit post service =", categoryDetails);
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      category_name: categoryDetails.category_name,
+      status: "active",
+      category_id: categoryDetails.category_id,
+      category_parent: categoryDetails.category_parent
+      // 'category_parent':  categoryDetails.category_parent == null ? categoryDetails.product_cat_id : categoryDetails.category_parent,
+    };
+
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "categories/addCategories", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  onGetProductsListCategoryWise(category_name){
+    let page_count = 1;
+    let page_limit = 10;
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_name=" +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&product_name=" +
+          "" +
+          "&category_name=" + category_name,
+
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // GetProductListByProductName -
+  onGetProductsListByProductName(product_name) {
+    let page_count = 1;
+    let page_limit = 10;
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_name=" +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&product_name=" +
+          product_name +
+          "&category_name=" +
+           "",
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // GetProductListByProductSKU -
+  onGetProductsListByProductSKU(product_sku) {
+    let page_count = 1;
+    let page_limit = 10;
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_name=" + "" +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&sku=" +
+          product_sku +
+          "&category_name=" +
+           "",
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  
+  // onGetProductsListByCategoryName -
+  onGetProductsListByCategoryName(category_name) {
+    let page_count = 1;
+    let page_limit = 10;
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_name=" + "" +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&sku=" +
+          "" +
+          "&category_name=" +
+          category_name,
+
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Service Function For Products List -
+  onGetProductsList() {
+    let page_count = 1;
+    let page_limit = 10;
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_name=" + "" +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&sku=" +
+          "" +
+          "&category_name=" +
+           "",
+
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Service Function For Products List -
+  // onSearchProductsList(productName) {
+  //   this.localStorageData();
+  //   const httpOptions = {
+  //     headers: new HttpHeaders({
+  //       "Content-Type": "application/json",
+  //       Authorization: "Bearer " + this.userData.token
+  //     })
+  //   };
+  //   return this.http
+  //     .get(
+  //       this.API_URL +
+  //         "product/productList?comp_id=" +
+  //         this.userData.comp_id +
+  //         "&logged_in_userid=" +
+  //         this.userData.user_id +
+  //         "&product_name=" +
+  //         productName,
+  //       httpOptions
+  //     )
+  //     .pipe(catchError(this.handleError));
+  // }
+
+  onSearchProductsList(productName) {
+    console.log('product name =', productName);
+    
+    let page_count = 1;
+    let page_limit = 10;
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(this.API_URL +
+        "product/productList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_name=" + productName +
+          "&org_id=" +
+          this.userData.org_id +
+          "&sort_by=" +
+          "DESC" +
+          "&page=" +
+          page_count +
+          "&limit=" +
+          page_limit +
+          "&sku=" +
+          "" +
+          "&category_name=" +
+          "",
+
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // For Add Product Service Function -
+  onPostProductData(formData: any) {
+    this.localStorageData();
+    console.log("Check postService request =", formData);
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      org_id: this.userData.org_id, //temp
+      logged_in_userid: this.userData.user_id,
+      product_id: formData.product_id,
+      product_variant_id: formData.product_variant_id,
+      product_name: formData.product_name,
+      product_category: formData.product_category,
+      product_tags: formData.product_tags,
+      product_type: formData.product_type,
+      product_sku: formData.product_sku,
+      product_hsn: formData.product_hsn,
+      product_gst: formData.product_gst,
+      selling_price: formData.selling_price,
+      mrp: formData.mrp,
+      qty_cases: formData.qty_cases,
+      uom_type: formData.uom_type,
+      min_qty: formData.min_qty,
+      brand_name: formData.brand_name,
+      cost_price: formData.cost_price,
+      price_list: formData.price_list,
+      product_status: "active",
+      attributes: formData.attributes,
+      product_attributes: formData.product_attributes,
+      product_variant: formData.product_variant,
+      token_regular: formData.token_regular,
+      product_description: formData.product_description
+    };
+
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "product/addProducts", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  // For Delete Product Service Function -
+  onDeleteProduct(formData) {
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      product_id: formData
+    };
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "product/deleteProducts", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Service onDeleteVariant Function -
+  onDeleteProductVariant(variantID) {
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      product_variant_id: variantID
+    };
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "product/deleteProductVariant", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  // For Deleting Product variant service Function -
+  onProductVariant(formData) {
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      product_variant_id: formData
+    };
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "product/deleteProductVariant", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Function For Edit Product -
+  onEditProduct(product_id_edit) {
+    // console.log('In Edit Service Function =', product_id_edit, product_variant_id_edit);
+
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id
+    };
+
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/productdetails?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_id=" +
+          product_id_edit,
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Function for image uploading -
+  //   imageUpload(image, productId) {
+  // 	this.localStorageData();
+  // 	let formData: FormData = new FormData();
+  // 	formData.append('comp_id', this.userData.comp_id);
+  //  formData.append("cust_id", custId);
+  // 	formData.append('product_id', productId);
+  // 	formData.append('logged_in_userid', this.userData.user_id);
+  // 	formData.append('format', this.format);
+  // 	formData.append('image',  image);
+
+  // 	const httpOptions = {
+  // 		  headers: new HttpHeaders({
+  // 			'Accept':  'application/json',
+  // 			'Authorization': 'Bearer ' + this.userData.token
+  // 		  })
+  // 	};
+  // 	return this.http.post(this.API_URL + 'product/addProducts', formData, httpOptions)
+  // 	.pipe(catchError(this.handleError));
+  // }
+
+  // Image Upload using FormData -
+  public imageUploadForAddProduct(image: File, type: any) {
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        Accept: "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    const formData = new FormData();
+    formData.append("comp_id", this.userData.comp_id);
+    formData.append("logged_in_userid", this.userData.user_id);
+    formData.append("format", this.format);
+    formData.append("file", image);
+    formData.append("type", type);
+
+    return this.http
+      .post(this.API_URL + "product/uploadPhotos", formData, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Service Function for search product price list -
+  onGetSearchPricelist(product_id, product_variant_id) {
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "product/serachPriceList?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id +
+          "&product_id=" +
+          product_id +
+          "&product_variant_id=" +
+          product_variant_id +
+          "&product_name=",
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  //  Service Function For Bran Master -
+  onGetBrandMasterDetails() {
+    this.localStorageData();
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .get(
+        this.API_URL +
+          "brandmaster/getBrandDetails?comp_id=" +
+          this.userData.comp_id +
+          "&logged_in_userid=" +
+          this.userData.user_id,
+        httpOptions
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  // Image delete function -
+  onDeleteImages(imageToken) {
+    console.log(imageToken);
+    this.localStorageData();
+    let data = {
+      comp_id: this.userData.comp_id,
+      format: this.format,
+      logged_in_userid: this.userData.user_id,
+      token: imageToken
+    };
+    const httpOptions = {
+      headers: new HttpHeaders({
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + this.userData.token
+      })
+    };
+    return this.http
+      .post(this.API_URL + "product/deletePhoto", data, httpOptions)
+      .pipe(catchError(this.handleError));
+  }
+}
+
